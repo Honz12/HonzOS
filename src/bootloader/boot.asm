@@ -99,16 +99,141 @@ main:
     mov ss, ax
     mov sp, 0x7C00
 
+    ; read something from the floppy disk
+    ; BIOS should set DL to drive number
+    mov [ebr_drive_number], dl
+
+    mov ax, 1           ; LBA = 1 (second sector from disk)
+    mov cl, 1           ; NUM_SECTORS = 1
+    mov bx, 0x7E00      ; Data should be after bootloader
+    call disk_read
+
     ; print message
     mov si, msg_hello
     call puts
 
     hlt
 
+floppy_error:
+    
+    hlt
+
+wait_key_and_reboot:
+    mov ah, 0
+    int 0x16                        ; wait for keypress
+    jmp 0xFFFF:0                    ; jump to start of BIOS (reboot)
+
 .halt:
-    jmp .halt
+    cli                             ; disable interrupts so CPU cant get out of "halt" state
+    hlt
+
+;
+; Disk routines
+;
+
+;
+; Converts an LBA to CHS address
+; PARAMS:
+;   - ax: LBA address
+; RETURNS?
+;   - cx [bits 0-5]: sector number
+;   - cx [bits 6-15]: cylinder
+;   - dh: head
+
+lba_to_chs:
+    push ax
+    push dx
+
+    xor dx, dx                          ; DX = 0
+    div word [bdb_sectors_per_track]    ; AX = LBA / SECTORS_PER_TRACK
+                                        ; DX = LBA % SECTORS_PER_TRACK
+
+    inc dx                              ; DX = LBA % SECTORS_PER_TRACK + 1 = sector
+    mov cx, dx
+
+    xor dx, dx                          ; DX = 0
+    div word [bdb_heads]                ; AX = (LBA / SECTORS_PER_TRACK) / HEADS = cylinder
+                                        ; DX = (LBA / SECTORS_PER_TRACK) % HEADS = head
+
+    mov dh, dl                          ; DH = head
+    mov ch, al                          ; CH = cylinder (lower 8 bits)
+    shl ah, 6
+    or cl, ah                           ; put upper 2 bits of cylinder in CL
+
+    pop ax
+    mov dl, al                          ; restore DL
+    pop ax
+
+    ret
+
+;
+; Reads sectors from disk
+; Parameters:
+;   - ax: LBA address
+;   - cl: number of sectors
+;   - dl: drive number
+;   - es:bx: memory address where to store read data
+;
+disk_read:
+    push ax                             ; save what we modify
+    push bx
+    push cx
+    push dx
+    push di
+
+    push cx                             ; save CL (num of sectors to read)
+    call lba_to_chs
+    pop ax                              ; AL = number of sectors to read
+
+    mov ah, 0x02                        ; DO RESEARCH !
+    mov di, 3                           ; number of attempts to read
+
+.retry:
+    pusha                               ; save all registers, we don't know what the BIOS will modify
+    stc                                 ; set carry flag, some BIOS'es dont
+    int 0x13
+    jnc .done                           ; success
+
+    ; read failed
+    popa
+    call disk_reset
+
+    dec di
+    test di, di
+
+.fail:
+    ; all attempts are exausted
+    jmp floppy_error
+
+.done:
+    popa
+
+    pop di                              ; get back registers we modified
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+
+    ret
+
+;
+; Resets disk controler
+; PARAMS:
+;   dl: drive number
+;
+disk_reset:
+    pusha
+    
+    mov ah, 0
+    stc
+    int 0x13
+    jc floppy_error
+    
+    popa
+    ret
 
 msg_hello: db 'Hello world', ENDL, 0
+msg_read_failed: db 'FLOPPY READ FAIL', ENDL, 0
 
 times 510-($-$$) db 0   ; pad program
 dw 0AA55h               ; word
