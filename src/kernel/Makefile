@@ -1,8 +1,5 @@
-BUILD_DIR?=build
+BUILD_DIR?=build/
 ASM?=nasm
-
-CC16?=wcc
-LD16?=wlink
 
 .PHONY: all kernel clean
 

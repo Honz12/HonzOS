@@ -1,47 +1,45 @@
-%define ENDL 0x0D, 0x0A
-
-org 0
+org 0x0
 bits 16
 
+
+%define ENDL 0x0D, 0x0A
+
+
 start:
-    ; print hello message
+    ; print hello world message
     mov si, msg_hello
     call puts
 
+.halt:
+    cli
     hlt
 
-.halt:
-    jmp .halt
-
-; =============================
-; Functions
-; =============================
-
 ;
-; Prints a null-terminater string to the screen
-; PARAMS:
-;   - ds:si point to string
+; Prints a string to the screen
+; Params:
+;   - ds:si points to string
 ;
 puts:
-    ; save what we modify
+    ; save registers we will modify
     push si
     push ax
+    push bx
 
 .loop:
-    lodsb               ; loads character into AL
+    lodsb               ; loads next character in al
     or al, al           ; verify if next character is null?
     jz .done
 
-    mov ah, 0x0e        ; BIOS > VIDEO-INT > CHAR-OUT
-    mov bh, 0           ; Page number
+    mov ah, 0x0E        ; call bios interrupt
+    mov bh, 0           ; set page number to 0
     int 0x10
 
     jmp .loop
 
 .done:
+    pop bx
     pop ax
-    pop si
-
+    pop si    
     ret
 
-msg_hello: db 'Welcome to HonzOS v0.1!', ENDL, 0
+msg_hello: db 'Hello world from KERNEL!', ENDL, 0

@@ -1,8 +1,8 @@
-BUILD_DIR?=build
+BUILD_DIR?=build/
 ASM?=nasm
 ASMFLAGS?=-f obj
 CC16?=wcc
-CFLAGS16?=-4 -d3 -s -wx -ms -zl -zq
+CFLAGS16?=-4 -d3 -s -wx -ms -zl -zq -za99 # -oneatxzh 
 LD16?=wlink
 
 SOURCES_C=$(wildcard *.c)

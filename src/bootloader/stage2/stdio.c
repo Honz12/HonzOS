@@ -1,30 +1,15 @@
 #include "stdio.h"
 #include "x86.h"
-#include "stdint.h"
 
-#define PRINTF_STATE_NORMAL 0
-#define PRINTF_STATE_LENGTH 1
-#define PRINTF_STATE_LENGTH_SHORT 2
-#define PRINTF_STATE_LENGTH_LONG 3
-#define PRINTF_STATE_SPEC 4
-
-#define PRINTF_LENGTH_DEFAULT 0
-#define PRINTF_LENGTH_LONG 1
-#define PRINTF_LENGTH_LONG_LONG 2
-#define PRINTF_LENGTH_SHORT 3
-#define PRINTF_LENGTH_SHORT_SHORT 4
-
-const char g_hex_chars[] = {
-    '0', '1', '2', '3', '4', '5', '6' ,'7',
-    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-};
-
-void putc(char c) {
+void putc(char c)
+{
     x86_Video_WriteCharTeletype(c, 0);
 }
 
-void puts(const char *str) {
-    while (*str) {
+void puts(const char* str)
+{
+    while(*str)
+    {
         putc(*str);
         str++;
     }
@@ -38,6 +23,18 @@ void puts_f(const char far* str)
         str++;
     }
 }
+
+#define PRINTF_STATE_NORMAL         0
+#define PRINTF_STATE_LENGTH         1
+#define PRINTF_STATE_LENGTH_SHORT   2
+#define PRINTF_STATE_LENGTH_LONG    3
+#define PRINTF_STATE_SPEC           4
+
+#define PRINTF_LENGTH_DEFAULT       0
+#define PRINTF_LENGTH_SHORT_SHORT   1
+#define PRINTF_LENGTH_SHORT         2
+#define PRINTF_LENGTH_LONG          3
+#define PRINTF_LENGTH_LONG_LONG     4
 
 int* printf_number(int* argp, int length, bool sign, int radix);
 
@@ -240,4 +237,17 @@ int* printf_number(int* argp, int length, bool sign, int radix)
         putc(buffer[pos]);
 
     return argp;
+}
+
+void print_buffer(const char* msg, const void far* buffer, uint16_t count)
+{
+    const uint8_t far* u8Buffer = (const uint8_t far*)buffer;
+    
+    puts(msg);
+    for (uint16_t i = 0; i < count; i++)
+    {
+        putc(g_HexChars[u8Buffer[i] >> 4]);
+        putc(g_HexChars[u8Buffer[i] & 0xF]);
+    }
+    puts("\r\n");
 }

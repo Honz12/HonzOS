@@ -1,7 +1,7 @@
-BUILD_DIR?=build
+BUILD_DIR?=build/
 ASM?=nasm
 
-.PHONY: all stage1 clean
+.PHONY: all clean
 
 all: stage1
 
