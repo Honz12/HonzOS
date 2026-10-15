@@ -1,0 +1,3 @@
+-ffreestanding
+-D_cdecl=__attribute__((cdecl))
+-Dfar=
